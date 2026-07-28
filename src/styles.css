@@ -27,15 +27,21 @@ body { display: flex; flex-direction: column; }
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
   background: var(--bg-alt);
   border-bottom: 1px solid var(--border);
 }
 
+/* Fills the gap between the title and the buttons so the whole bar can be
+   grabbed to move the window, not just the title text. */
+.header-spacer { flex: 1; align-self: stretch; }
+
 .app-header h1 { font-size: 15px; margin: 0; font-weight: 600; }
 .header-actions { display: flex; gap: 8px; }
+
+/* Dragging the window shouldn't look like selecting text. */
+[data-tauri-drag-region] { cursor: default; user-select: none; -webkit-user-select: none; }
 
 .layout {
   flex: 1;

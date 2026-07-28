@@ -7,8 +7,13 @@
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="app-header">
-    <h1>GitHub Documentation Manager</h1>
+  <!-- The native title bar is hidden (titleBarStyle: Overlay), so the header
+       doubles as the window's drag handle. `data-tauri-drag-region` only
+       applies to the element it is on, hence it is repeated on the children
+       that fill the bar. Interactive controls deliberately omit it. -->
+  <header class="app-header" data-tauri-drag-region>
+    <h1 data-tauri-drag-region>GitHub Documentation Manager</h1>
+    <div class="header-spacer" data-tauri-drag-region></div>
     <div class="header-actions">
       <button id="reveal-btn" class="ghost" title="Show where the library file is stored">Data</button>
       <button id="export-btn" class="ghost" title="Export library as JSON">Export</button>

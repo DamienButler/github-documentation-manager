@@ -139,6 +139,10 @@ Either way you get a "URL copied" confirmation.
 
 Everything is **expanded by default** — including any category or sub category you create later. Click a category or sub category heading to collapse it, and that choice is remembered between launches. The **⇕** button beside the search box collapses everything at once, or expands everything if anything is currently collapsed.
 
+### Moving the window
+
+The app uses a hidden title bar so the toolbar sits flush with the top of the window. **Drag the app anywhere along the header bar** — the title, or the empty space beside it — to move the window. Double-click the same area to zoom.
+
 ### Keyboard shortcuts
 
 | Shortcut | Action |
