@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitHub Documentation Manager</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>GitHub Documentation Manager</h1>
+    <div class="header-actions">
+      <button id="reveal-btn" class="ghost" title="Show where the library file is stored">Data</button>
+      <button id="export-btn" class="ghost" title="Export library as JSON">Export</button>
+      <button id="import-btn" class="ghost" title="Import a JSON library">Import</button>
+      <input type="file" id="import-file" accept="application/json" hidden />
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT PANE -->
+    <section class="pane left-pane">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="browse" role="tab">Documentation</button>
+        <button class="tab" data-tab="add" role="tab">Add link</button>
+      </nav>
+
+      <!-- Tab: browse -->
+      <div class="tab-panel active" data-panel="browse">
+        <div class="search-row">
+          <input type="search" id="search" placeholder="Search titles, URLs, tags, categories…" autocomplete="off" />
+          <button id="collapse-all" class="ghost small" title="Collapse / expand all">⇕</button>
+        </div>
+        <div id="tree" class="tree"></div>
+      </div>
+
+      <!-- Tab: add -->
+      <div class="tab-panel" data-panel="add">
+        <form id="add-form" class="form">
+          <label>
+            Title
+            <input type="text" id="doc-title" placeholder="e.g. GitHub Actions – workflow syntax" required />
+          </label>
+
+          <label>
+            URL
+            <input type="url" id="doc-url" placeholder="https://docs.github.com/…" required />
+          </label>
+
+          <label>
+            Category
+            <select id="category-select" required></select>
+          </label>
+          <div class="inline-new" id="new-category-wrap" hidden>
+            <input type="text" id="new-category" placeholder="New category name" />
+          </div>
+
+          <label>
+            Sub category
+            <select id="subcategory-select" required></select>
+          </label>
+          <div class="inline-new" id="new-subcategory-wrap" hidden>
+            <input type="text" id="new-subcategory" placeholder="New sub category name" />
+          </div>
+
+          <label>
+            Tags <span class="hint">(comma separated)</span>
+            <input type="text" id="doc-tags" placeholder="actions, ci, yaml" />
+          </label>
+
+          <label>
+            Notes
+            <textarea id="doc-notes" rows="4" placeholder="Why this link is useful…"></textarea>
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="primary">Save link</button>
+            <button type="button" id="reset-form" class="ghost">Clear</button>
+          </div>
+          <p class="form-msg" id="form-msg"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- RIGHT PANE -->
+    <section class="pane right-pane" id="detail">
+      <div class="empty-state">
+        <h2>No document selected</h2>
+        <p>Pick a document in the left pane to see its details, URL and notes.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

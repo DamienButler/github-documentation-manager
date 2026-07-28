@@ -1,0 +1,31 @@
+[package]
+name = "github-documentation-manager"
+version = "1.0.0"
+description = "Manage, categorise and quickly look up GitHub documentation links."
+authors = ["Damien Butler"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "ghdocs_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# `unstable` enables multi-webview support (Window::add_child), which is what
+# lets us embed a real WKWebView in the right-hand pane.
+tauri = { version = "2", features = ["unstable"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
