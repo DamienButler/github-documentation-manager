@@ -212,6 +212,9 @@ Because it's one small JSON file, a few options open up:
 
 ## Building from source
 
+Full step-by-step instructions, including how to update an installed copy and
+how releases are published, are in **[DEPLOY.md](DEPLOY.md)**. The short version:
+
 **Prerequisites**
 
 - [Rust](https://rustup.rs) (stable)
@@ -236,6 +239,16 @@ npm run build
 ```
 
 The finished `.app` and `.dmg` land in `src-tauri/target/release/bundle/`.
+
+**Update an installed copy after pulling changes**
+
+```sh
+./scripts/update.sh
+```
+
+Pulls, rebuilds and reinstalls to `/Applications`. Your library is stored
+separately and is never touched. There is no in-app updater yet —
+[UPDATER.md](UPDATER.md) sets out the plan for adding one.
 
 **Regenerate the icon** (only if you change `scripts/make-icon.js`)
 
