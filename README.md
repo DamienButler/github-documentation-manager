@@ -217,7 +217,7 @@ Because it's one small JSON file, a few options open up:
 **Run in development**
 
 ```sh
-git clone https://github.com/<your-username>/github-documentation-manager.git
+git clone https://github.com/DamienButler/github-documentation-manager.git
 cd github-documentation-manager
 npm install
 npm run dev
