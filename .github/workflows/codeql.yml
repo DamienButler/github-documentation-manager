@@ -15,7 +15,7 @@ on:
 jobs:
   analyze:
     name: Analyze ${{ matrix.language }}
-    runs-on: ${{ matrix.language == 'rust' && 'macos-latest' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       packages: read
@@ -25,34 +25,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - language: javascript-typescript
-            build-mode: none
-          - language: rust
-            build-mode: manual
+        # Both extractors run without building the project. The Rust extractor
+        # only supports `build-mode: none`; compilation is covered separately
+        # by the CI workflow.
+        language: [javascript-typescript, rust]
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        if: matrix.language == 'rust'
-
-      - uses: swatinem/rust-cache@v2
-        if: matrix.language == 'rust'
-        with:
-          workspaces: ./src-tauri -> target
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          build-mode: none
           queries: security-extended
-
-      - name: Build Rust
-        if: matrix.language == 'rust'
-        working-directory: src-tauri
-        run: cargo build --locked
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
