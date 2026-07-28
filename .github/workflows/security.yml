@@ -26,15 +26,22 @@ jobs:
   cargo-audit:
     name: Rust — RustSec advisories
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
+
       # `--deny warnings` is deliberately not used: the only current warnings
       # are unmaintained GTK crates pulled in by Tauri's Linux backend, which
       # we cannot resolve independently of upstream. Genuine vulnerabilities
-      # still fail the job.
+      # still fail the job. See SECURITY.md.
       - name: Audit Rust dependencies
         working-directory: src-tauri
         run: cargo audit
@@ -42,9 +49,14 @@ jobs:
   cargo-deny:
     name: Rust — licences, bans, sources
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: EmbarkStudios/cargo-deny-action@b66acf5e9fe20f8aba065be86778a8a4c846f902 # v2
         with:
           manifest-path: src-tauri/Cargo.toml
           command: check bans licenses sources advisories
@@ -52,13 +64,20 @@ jobs:
   npm-audit:
     name: npm — advisories
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 20
           cache: npm
+
       - run: npm ci
+
       # Only the Tauri CLI is an npm dependency, and it is a build-time tool
       # rather than something shipped in the app, but a known-vulnerable
       # toolchain is still worth flagging.
@@ -72,8 +91,11 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/dependency-review-action@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5
         with:
           fail-on-severity: high
           comment-summary-in-pr: always
@@ -85,15 +107,20 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
+
       # Audits these workflow files themselves for injection, over-broad
       # permissions and unpinned actions.
       - run: pipx run zizmor --format sarif . > zizmor.sarif
         continue-on-error: true
-      - uses: github/codeql-action/upload-sarif@v4
+
+      - uses: github/codeql-action/upload-sarif@adfda868f108ac4222129de456ea554034a27db7 # v4
         with:
           sarif_file: zizmor.sarif
           category: zizmor

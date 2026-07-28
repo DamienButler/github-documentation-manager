@@ -9,6 +9,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Read-only by default; no job here needs to write anything.
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -16,14 +20,18 @@ jobs:
   rust:
     name: Rust — build, format, clippy
     runs-on: macos-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           components: rustfmt, clippy
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
         with:
           workspaces: ./src-tauri -> target
 
@@ -42,10 +50,14 @@ jobs:
   frontend:
     name: Frontend — syntax check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 20
           cache: npm

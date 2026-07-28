@@ -7,6 +7,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     labels: [dependencies, rust]
+    # Wait before proposing a brand-new release, so a compromised or broken
+    # publish has time to be caught and yanked before it reaches this repo.
+    cooldown:
+      default-days: 7
     groups:
       tauri:
         patterns: ["tauri", "tauri-*"]
@@ -18,10 +22,16 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     labels: [dependencies, javascript]
+    cooldown:
+      default-days: 7
 
-  # Keep the GitHub Actions themselves patched
+  # Keep the GitHub Actions themselves patched. These are pinned to commit
+  # SHAs in the workflows; Dependabot updates the SHA and the version comment
+  # together.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     labels: [dependencies, ci]
+    cooldown:
+      default-days: 7
