@@ -1,0 +1,64 @@
+# Security Policy
+
+## Reporting a vulnerability
+
+Please **do not** open a public issue for security problems.
+
+Use GitHub's private reporting instead: go to the **Security** tab →
+**Report a vulnerability**. That opens a private advisory visible only to the
+maintainers.
+
+Please include what you found, how to reproduce it, and what an attacker could
+achieve. You can expect an initial response within a few days.
+
+## Supported versions
+
+The most recent release is supported. Fixes are issued as new releases rather
+than backported.
+
+## Design notes relevant to security
+
+This is a local, single-user desktop application. It has no server, no accounts
+and no telemetry, so the attack surface is mostly "what happens when the app
+loads a URL you saved".
+
+- **Deny-by-default permissions.** Tauri grants the frontend nothing unless it
+  is listed in `src-tauri/capabilities/default.json`. The app requests only
+  file dialogs, opening external URLs, and control of the viewer webview. There
+  is no blanket filesystem or network access.
+- **URL validation in Rust.** Anything handed to the document viewer is parsed
+  and rejected unless the scheme is `http` or `https`, so a crafted library
+  file cannot make the app open `file://`, `javascript:` or similar.
+- **Untrusted content is isolated.** Documentation pages render in a separate
+  child webview with no access to the application's own JavaScript context or
+  to Tauri commands.
+- **HTML escaping.** Every value from the library — titles, URLs, tags, notes —
+  is escaped before it reaches the DOM, so importing a malicious library cannot
+  inject script into the app's own UI.
+- **Atomic writes.** The library is written to a temporary file and renamed
+  over the original, so an interrupted save cannot corrupt your data.
+
+## Automated checks
+
+Every push and pull request runs:
+
+| Check | What it covers |
+| --- | --- |
+| **CodeQL** | Static analysis of the JavaScript and Rust for security flaws, using the `security-extended` query set |
+| **cargo audit** | Rust dependencies against the [RustSec](https://rustsec.org) advisory database |
+| **cargo deny** | Advisories, licence compliance, banned crates and unexpected registries |
+| **npm audit** | Build-time JavaScript tooling |
+| **Dependency review** | Flags vulnerable or badly-licensed dependencies introduced by a pull request |
+| **zizmor** | Audits the CI workflows themselves for injection and over-broad permissions |
+
+CodeQL and the dependency audits also run weekly, so advisories published after
+a commit was merged are still caught. Dependabot opens pull requests for
+outdated Rust, npm and Actions dependencies.
+
+### Known accepted findings
+
+`cargo audit` reports several **unmaintained** GTK/GLib crates. These arrive via
+Tauri's Linux backend, are not compiled into the macOS or Windows builds, and
+cannot be resolved independently of upstream Tauri. They are recorded in
+`deny.toml` with the reasoning, and will clear when Tauri migrates. No crate in
+the dependency tree currently has a known exploitable vulnerability.

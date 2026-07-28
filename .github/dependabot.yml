@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Rust dependencies
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies, rust]
+    groups:
+      tauri:
+        patterns: ["tauri", "tauri-*"]
+
+  # npm dependencies (the Tauri CLI)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies, javascript]
+
+  # Keep the GitHub Actions themselves patched
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, ci]

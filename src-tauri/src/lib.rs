@@ -3,9 +3,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
-use tauri::{
-    LogicalPosition, LogicalSize, Manager, State, WebviewUrl, Window,
-};
+use tauri::{LogicalPosition, LogicalSize, Manager, State, WebviewUrl, Window};
 
 /// Label of the native child webview used to render documentation pages.
 const VIEWER: &str = "viewer";
@@ -112,8 +110,8 @@ async fn viewer_show(
         view.set_size(size).map_err(|e| e.to_string())?;
         view.show().map_err(|e| e.to_string())?;
     } else {
-        let builder = tauri::webview::WebviewBuilder::new(VIEWER, WebviewUrl::External(parsed))
-            .auto_resize();
+        let builder =
+            tauri::webview::WebviewBuilder::new(VIEWER, WebviewUrl::External(parsed)).auto_resize();
         window
             .add_child(builder, position, size)
             .map_err(|e| e.to_string())?;

@@ -20,6 +20,7 @@ Built with [Tauri](https://tauri.app) — a Rust shell around the operating syst
 - [Backups, sync and sharing](#backups-sync-and-sharing)
 - [Building from source](#building-from-source)
 - [Project layout](#project-layout)
+- [Security](#security)
 - [Licence](#licence)
 
 ---
@@ -259,9 +260,24 @@ npx tauri icon src-tauri/icons/icon.png
 
 The frontend is plain HTML, CSS and JavaScript — no framework, no bundler, no transpiler. `src/index.html` can be opened directly in a browser, where it falls back to `localStorage` and an `<iframe>` preview.
 
-### A note on permissions
+---
 
-Tauri denies everything by default; the app only gets what's explicitly granted in `src-tauri/capabilities/default.json` — file dialogs, opening external URLs, and managing the viewer webview. There's no blanket filesystem or network access. URLs handed to the viewer are validated in Rust and rejected unless they're `http` or `https`.
+## Security
+
+Full detail is in [SECURITY.md](SECURITY.md), including how to report a vulnerability privately.
+
+The short version: this is a local, single-user app with no server, no accounts and no telemetry. Tauri denies the frontend everything by default — the app requests only file dialogs, opening external URLs, and control of the viewer webview, granted explicitly in `src-tauri/capabilities/default.json`. URLs are validated in Rust and rejected unless `http`/`https`, documentation pages render in an isolated child webview with no access to app internals, and all library values are HTML-escaped before hitting the DOM.
+
+Every push and pull request runs CodeQL (`security-extended`), `cargo audit`, `cargo deny`, `npm audit`, dependency review and a workflow-hardening audit. These also run weekly, so advisories published after a merge are still caught, and Dependabot keeps Rust, npm and Actions dependencies patched.
+
+### Releasing
+
+Push a version tag and the release workflow builds signed-less bundles for macOS (Apple Silicon and Intel), Windows and Linux, then attaches them to a **draft** release for you to review before publishing:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ---
 

@@ -1,0 +1,99 @@
+name: Security audit
+
+# Checks dependencies for known vulnerabilities, unmaintained crates and
+# licence problems. Runs on dependency changes, on a schedule (so advisories
+# published after a commit are still caught), and on demand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**/package.json"
+      - "**/package-lock.json"
+      - ".github/workflows/security.yml"
+      - "deny.toml"
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    name: Rust — RustSec advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      # `--deny warnings` is deliberately not used: the only current warnings
+      # are unmaintained GTK crates pulled in by Tauri's Linux backend, which
+      # we cannot resolve independently of upstream. Genuine vulnerabilities
+      # still fail the job.
+      - name: Audit Rust dependencies
+        working-directory: src-tauri
+        run: cargo audit
+
+  cargo-deny:
+    name: Rust — licences, bans, sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: src-tauri/Cargo.toml
+          command: check bans licenses sources advisories
+
+  npm-audit:
+    name: npm — advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Only the Tauri CLI is an npm dependency, and it is a build-time tool
+      # rather than something shipped in the app, but a known-vulnerable
+      # toolchain is still worth flagging.
+      - run: npm audit --audit-level=high
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+
+  zizmor:
+    name: Workflow hardening
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Audits these workflow files themselves for injection, over-broad
+      # permissions and unpinned actions.
+      - run: pipx run zizmor --format sarif . > zizmor.sarif
+        continue-on-error: true
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: zizmor.sarif
+          category: zizmor

@@ -1,0 +1,61 @@
+# cargo-deny configuration — https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+]
+
+[advisories]
+version = 2
+# Any crate with a genuine security vulnerability fails the build.
+yanked = "warn"
+# `unmaintained` and `unsound` advisories are reported but do not fail, because
+# every current one comes from the GTK/GLib stack that Tauri depends on for its
+# Linux backend. They are unreachable on macOS and Windows, and we cannot fix
+# them independently of upstream Tauri — Dependabot will pull in the fix once
+# Tauri migrates. Reviewed 2026-07-28; revisit if anything non-GTK appears.
+unmaintained = "none"
+ignore = [
+    # Unsoundness in glib's VariantStrIter — Linux-only, via Tauri's GTK backend.
+    "RUSTSEC-2024-0429",
+]
+
+[licenses]
+version = 2
+# Permissive licences only — nothing copyleft that would affect distribution.
+# Kept deliberately broad because Tauri pulls in platform crates for every
+# target we build for, not just the host.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "MPL-2.0",
+    "CC0-1.0",
+    "BSL-1.0",
+    "NCSA",
+    "OpenSSL",
+]
+confidence-threshold = 0.9
+# Don't fail the build merely because an allowed licence happens to be unused
+# on the target currently being checked.
+unused-allowed-license = "allow"
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+highlight = "all"
+
+[sources]
+# Only accept crates from crates.io — no git or alternative registries.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
