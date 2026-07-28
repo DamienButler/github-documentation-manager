@@ -64,14 +64,19 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # Deliberately no build cache here. This job has `contents: write` and
-      # produces the binaries users download, so a poisoned cache entry from
-      # another branch could end up inside a published artefact. Releases are
-      # infrequent; a clean build is worth the extra minutes.
-      #
-      # Node is not installed either: the frontend is static HTML/CSS/JS with
-      # no build step (`frontendDist` points straight at `src/`), so
-      # tauri-action only needs Cargo.
+      # Deliberately no Rust build cache here. This job has `contents: write`
+      # and produces the binaries users download, so a poisoned cache entry
+      # from another branch could end up inside a published artefact.
+      # Releases are infrequent; a clean build is worth the extra minutes.
+
+      # tauri-action detects package.json and drives the build through
+      # `npm run tauri build`, so Node is required. npm caching is left off
+      # for the same cache-poisoning reason as above.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7 # zizmor: ignore[cache-poisoning]
+        with:
+          node-version: 20
+
+      - run: npm ci
 
       - name: Build and publish
         uses: tauri-apps/tauri-action@fce9c6108b31ea247710505d3aaaa893ee6768d4 # v0
