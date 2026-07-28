@@ -1,8 +1,8 @@
 {
-  "name": "github-documentation-manager",
-  "productName": "GitHub Documentation Manager",
+  "name": "docu-manage",
+  "productName": "Docu Manage",
   "version": "1.0.0",
-  "description": "Manage, categorise and quickly look up GitHub documentation links.",
+  "description": "Manage, categorise and quickly look up product documentation links.",
   "author": "Damien Butler",
   "license": "MIT",
   "private": true,

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "GitHub Documentation Manager",
+  "productName": "Docu Manage",
   "version": "1.0.0",
-  "identifier": "com.damienbutler.ghdocmanager",
+  "identifier": "com.damienbutler.documanage",
   "build": {
     "frontendDist": "../src"
   },
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "GitHub Documentation Manager",
+        "title": "Docu Manage",
         "width": 1400,
         "height": 900,
         "minWidth": 900,
@@ -37,7 +37,7 @@
       "icons/icon.ico"
     ],
     "category": "DeveloperTool",
-    "shortDescription": "Quick lookup for GitHub documentation",
+    "shortDescription": "Quick lookup for product documentation",
     "macOS": {
       "minimumSystemVersion": "10.15"
     }

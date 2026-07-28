@@ -65,14 +65,14 @@ This produces an optimised, self-contained bundle in about a minute:
 
 ```
 src-tauri/target/release/bundle/
-├── macos/GitHub Documentation Manager.app     ← the app itself
-└── dmg/GitHub Documentation Manager_1.0.0_aarch64.dmg
+├── macos/Docu Manage.app     ← the app itself
+└── dmg/Docu Manage_1.0.0_aarch64.dmg
 ```
 
 ### 5. Install it
 
 ```sh
-cp -R "src-tauri/target/release/bundle/macos/GitHub Documentation Manager.app" /Applications/
+cp -R "src-tauri/target/release/bundle/macos/Docu Manage.app" /Applications/
 ```
 
 Then open it from Spotlight (`⌘Space`), Launchpad, or the Applications folder.
@@ -84,7 +84,7 @@ Then open it from Spotlight (`⌘Space`), Launchpad, or the Applications folder.
 > Because you built it yourself, you can also clear the flag directly:
 >
 > ```sh
-> xattr -dr com.apple.quarantine "/Applications/GitHub Documentation Manager.app"
+> xattr -dr com.apple.quarantine "/Applications/Docu Manage.app"
 > ```
 
 ### Don't want to build it?
@@ -107,7 +107,7 @@ cd /path/to/github-documentation-manager
 git pull
 npm install    # only needed if package.json changed
 npm run build
-cp -R "src-tauri/target/release/bundle/macos/GitHub Documentation Manager.app" /Applications/
+cp -R "src-tauri/target/release/bundle/macos/Docu Manage.app" /Applications/
 ```
 
 Quit the app before the final `cp`, or macOS may refuse to overwrite a running
@@ -130,7 +130,7 @@ open it, and drag the app to Applications, replacing the existing copy.
 The library lives outside the application bundle:
 
 ```
-~/Library/Application Support/com.damienbutler.ghdocmanager/library.json
+~/Library/Application Support/com.damienbutler.documanage/library.json
 ```
 
 Replacing, reinstalling or deleting the app does not touch it. The **Data**
@@ -248,7 +248,7 @@ The app is running. Quit it and retry.
 
 **Gatekeeper: "cannot be opened because the developer cannot be verified"**
 Expected for unsigned builds. Right-click → **Open** → **Open**, or run
-`xattr -dr com.apple.quarantine "/Applications/GitHub Documentation Manager.app"`.
+`xattr -dr com.apple.quarantine "/Applications/Docu Manage.app"`.
 
 **Build succeeds but the app shows a blank window**
 Usually a JavaScript error. Run `npm run dev` and check the terminal, or

@@ -24,6 +24,11 @@ struct Bounds {
 
 // ---------------------------------------------------------------- storage
 
+/// Bundle identifier used before the app was renamed to Docu Manage. The data
+/// directory is derived from the identifier, so a library saved by the old
+/// build lives here and must be carried across on first run.
+const LEGACY_IDENTIFIER: &str = "com.damienbutler.ghdocmanager";
+
 fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
@@ -33,6 +38,14 @@ fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("library.json"))
 }
 
+/// Where the pre-rename build kept its library, if that directory still exists.
+fn legacy_library_path(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let dir = app.path().app_data_dir().ok()?;
+    let parent = dir.parent()?;
+    let legacy = parent.join(LEGACY_IDENTIFIER).join("library.json");
+    legacy.is_file().then_some(legacy)
+}
+
 #[tauri::command]
 fn load_library(app: tauri::AppHandle) -> Result<Option<serde_json::Value>, String> {
     let path = library_path(&app)?;
@@ -40,7 +53,21 @@ fn load_library(app: tauri::AppHandle) -> Result<Option<serde_json::Value>, Stri
         Ok(text) => serde_json::from_str(&text)
             .map(Some)
             .map_err(|e| format!("library.json is not valid JSON: {e}")),
-        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => {
+            // Nothing here yet — adopt the previous app's library if present,
+            // so renaming the app doesn't look like data loss to the user.
+            match legacy_library_path(&app) {
+                Some(old) => {
+                    let text = fs::read_to_string(&old).map_err(|e| e.to_string())?;
+                    let value: serde_json::Value = serde_json::from_str(&text)
+                        .map_err(|e| format!("previous library.json is not valid JSON: {e}"))?;
+                    // Copy it forward; the original is left untouched as a backup.
+                    fs::write(&path, &text).map_err(|e| e.to_string())?;
+                    Ok(Some(value))
+                }
+                None => Ok(None),
+            }
+        }
         Err(e) => Err(e.to_string()),
     }
 }

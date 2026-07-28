@@ -1,6 +1,6 @@
-# GitHub Documentation Manager
+# Docu Manage
 
-A small, fast desktop app for collecting, categorising and looking up documentation links — GitHub's docs, RFCs, internal wikis, anything with a URL. Pages render **inside** the app, so you don't lose your place hopping between browser tabs.
+A small, fast desktop app for collecting, categorising and looking up documentation links — GitHub, Microsoft Learn, AWS, RFCs, internal wikis, anything with a URL. Keep each product's docs in its own tab, and read them **inside** the app rather than losing your place across browser tabs.
 
 Built with [Tauri](https://tauri.app) — a Rust shell around the operating system's own webview. The whole app is a few megabytes, with no bundled Chromium.
 
@@ -11,12 +11,14 @@ Built with [Tauri](https://tauri.app) — a Rust shell around the operating syst
 - [Why](#why)
 - [Install](#install)
 - [Using the app](#using-the-app)
+  - [Documentation sets](#documentation-sets)
   - [Adding a link](#adding-a-link)
   - [Searching](#searching)
   - [Reading a document](#reading-a-document)
   - [Copying a URL](#copying-a-url)
   - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Where your data lives](#where-your-data-lives)
+  - [Why one file](#why-one-file)
 - [Backups, sync and sharing](#backups-sync-and-sharing)
 - [Building from source](#building-from-source)
 - [Project layout](#project-layout)
@@ -53,21 +55,31 @@ The window is split into two panes:
 
 ```
 ┌─────────────────────────┬──────────────────────────────────────┐
-│  [Documentation] [Add]  │  Title                    [actions]  │
-│  ┌───────────────────┐  │  Category › Sub category             │
-│  │ Search…           │  │  URL  https://…            [Copy]    │
-│  └───────────────────┘  │  #tags                               │
-│                         │  Notes…                              │
-│  ▼ GITHUB ACTIONS   2   ├──────────────────────────────────────┤
-│    ▼ Workflow syntax 1  │  ⟳  https://docs.github.com/…     ↗  │
-│      Workflow syntax…   ├──────────────────────────────────────┤
-│    ▼ Reusable wf…    1  │                                      │
-│      Reusing workflows  │      (the live document renders      │
-│  ▼ REST API         1   │       here, in a real webview)       │
+│ [GitHub][Microsoft][＋] │  Title                    [actions]  │
+│  [Documentation] [Add]  │  Category › Sub category             │
+│  ┌───────────────────┐  │  URL  https://…            [Copy]    │
+│  │ Search…           │  │  #tags                               │
+│  └───────────────────┘  │  Notes…                              │
+│                         ├──────────────────────────────────────┤
+│  ▼ GITHUB ACTIONS   2   │  ⟳  https://docs.github.com/…     ↗  │
+│    ▼ Workflow syntax 1  ├──────────────────────────────────────┤
+│      Workflow syntax…   │                                      │
+│    ▼ Reusable wf…    1  │      (the live document renders      │
+│      Reusing workflows  │       here, in a real webview)       │
+│  ▼ REST API         1   │                                      │
 │    ▼ Repositories    1  │                                      │
-│      REST API — Repos   │                                      │
 └─────────────────────────┴──────────────────────────────────────┘
 ```
+
+### Documentation sets
+
+The top row of tabs is one **set** per product — GitHub, Microsoft Learn, AWS, Python, whatever you need. Each set has its own independent categories, sub categories and documents, so a "REST API" category under GitHub has nothing to do with one under Microsoft.
+
+- **Switch** by clicking a tab. The count beside each name is how many documents it holds.
+- **Create** one with **＋ New tab**, name it, and you're taken straight to the Add link form.
+- **Rename or delete** by right-clicking a tab. Deleting warns you how many documents will go with it, and you can't delete your last remaining set.
+
+Search, the tree, and the Add link form all apply to the **currently selected set** only.
 
 ### Adding a link
 
@@ -161,7 +173,7 @@ Everything you add is written to a single JSON file:
 **macOS**
 
 ```
-~/Library/Application Support/com.damienbutler.ghdocmanager/library.json
+~/Library/Application Support/com.damienbutler.documanage/library.json
 ```
 
 The **Data** button in the app header shows you the exact path.
@@ -170,34 +182,57 @@ The **Data** button in the app header shows you the exact path.
 
 Every change — adding a link, editing notes, deleting an entry — saves immediately. Writes go to a temporary file which is then atomically renamed over the original, so a crash or power loss mid-save can't leave you with a truncated, unreadable library.
 
-The format is deliberately plain and hand-editable:
+The format is deliberately plain and hand-editable. **All sets live in one file** — see [why](#why-one-file) below.
 
 ```json
 {
-  "categories": {
-    "GitHub Actions": ["Workflow syntax", "Caching"],
-    "REST API": ["Repositories"]
-  },
-  "docs": [
-    {
-      "id": "k3f9a2b1m8x7",
-      "title": "actions/cache — key vs restore-keys",
-      "url": "https://github.com/actions/cache#skipping-steps-based-on-cache-hit",
-      "category": "GitHub Actions",
-      "subcategory": "Caching",
-      "tags": ["cache", "ci", "performance"],
-      "notes": "restore-keys is a prefix match, evaluated in order.",
-      "created": "2026-07-28T11:24:03.881Z"
-    }
-  ]
+  "schemaVersion": 2,
+  "activeProduct": "GitHub",
+  "productOrder": ["GitHub", "Microsoft"],
+  "products": {
+    "GitHub": {
+      "categories": {
+        "GitHub Actions": ["Workflow syntax", "Caching"],
+        "REST API": ["Repositories"]
+      },
+      "docs": [
+        {
+          "id": "k3f9a2b1m8x7",
+          "title": "actions/cache — key vs restore-keys",
+          "url": "https://github.com/actions/cache#skipping-steps-based-on-cache-hit",
+          "category": "GitHub Actions",
+          "subcategory": "Caching",
+          "tags": ["cache", "ci", "performance"],
+          "notes": "restore-keys is a prefix match, evaluated in order.",
+          "created": "2026-07-28T11:24:03.881Z"
+        }
+      ]
+    },
+    "Microsoft": { "categories": {}, "docs": [] }
+  }
 }
 ```
+
+### Why one file
+
+Every documentation set is stored in a single `library.json` rather than one file per product. That's a deliberate choice:
+
+- **Saves stay atomic.** One write, one rename — the library is never half-updated. With several files, a crash between writes could leave sets disagreeing with each other.
+- **One Export is a complete backup.** No risk of backing up four products and forgetting the fifth.
+- **Import stays simple.** Merging one file into another is easy to reason about and easy to undo.
+- **Size is a non-issue.** Even a few thousand links is a couple of hundred kilobytes — nothing worth splitting.
+
+Separate files would only pay off if libraries grew to megabytes, or if you wanted to sync individual products independently. If that changes, the structure above splits cleanly along `products`, because each set is already self-contained.
+
+### Upgrading from the old format
+
+Version 1 stored a single flat `{ categories, docs }` object, from when this only handled GitHub docs. Those entries are migrated automatically into a set named **GitHub** the first time you run the new version — nothing is lost, and the old file is left in place as a backup.
 
 ---
 
 ## Backups, sync and sharing
 
-**Export** (`⌘S`) writes the whole library to a `.json` file wherever you choose. **Import** (`⌘O`) reads one back and asks whether to:
+**Export** (`⌘S`) writes the whole library — every set — to a `.json` file wherever you choose. **Import** (`⌘O`) reads one back and asks whether to:
 
 - **Merge** — add entries whose URLs you don't already have, and union the category lists. Your existing entries and notes are untouched. This is what you want for combining libraries.
 - **Replace** — discard the current library and use the imported one wholesale.

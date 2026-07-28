@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GitHub Documentation Manager</title>
+<title>Docu Manage</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
        applies to the element it is on, hence it is repeated on the children
        that fill the bar. Interactive controls deliberately omit it. -->
   <header class="app-header" data-tauri-drag-region>
-    <h1 data-tauri-drag-region>GitHub Documentation Manager</h1>
+    <h1 data-tauri-drag-region>Docu Manage</h1>
     <div class="header-spacer" data-tauri-drag-region></div>
     <div class="header-actions">
       <button id="reveal-btn" class="ghost" title="Show where the library file is stored">Data</button>
@@ -25,6 +25,10 @@
   <main class="layout">
     <!-- LEFT PANE -->
     <section class="pane left-pane">
+      <!-- Product tabs: one per documentation set (GitHub, Microsoft, …).
+           Populated by renderProductTabs(). -->
+      <nav class="product-tabs" id="product-tabs" role="tablist" aria-label="Documentation sets"></nav>
+
       <nav class="tabs" role="tablist">
         <button class="tab active" data-tab="browse" role="tab">Documentation</button>
         <button class="tab" data-tab="add" role="tab">Add link</button>

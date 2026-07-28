@@ -43,6 +43,100 @@ body { display: flex; flex-direction: column; }
 /* Dragging the window shouldn't look like selecting text. */
 [data-tauri-drag-region] { cursor: default; user-select: none; -webkit-user-select: none; }
 
+/* Product tabs — one per documentation set */
+.product-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 6px 6px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.product-tabs::-webkit-scrollbar { height: 4px; }
+.product-tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.product-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-width: 160px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.product-tab:hover { background: var(--bg-hover); color: var(--text); }
+.product-tab.active {
+  background: var(--bg-alt);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+.product-tab .product-name { overflow: hidden; text-overflow: ellipsis; }
+.product-tab .count {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  font-weight: 400;
+}
+.product-tab.new-product { color: var(--accent); }
+.product-tab.new-product:hover { background: var(--accent-soft); }
+
+/* Right-click menu on a product tab */
+.context-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 150px;
+  padding: 4px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+.context-menu button:hover { background: var(--bg-hover); }
+.context-menu .danger-item { color: var(--danger); }
+
+/* Text prompt (Tauri has no native text-input dialog) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1, 4, 9, .6);
+}
+.modal {
+  width: min(420px, 90vw);
+  padding: 20px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+}
+.modal h2 { margin: 0 0 12px; font-size: 15px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
 .layout {
   flex: 1;
   display: grid;
