@@ -37,7 +37,7 @@ jobs:
             args: ""
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Linux build dependencies
         if: matrix.os == 'ubuntu-22.04'
