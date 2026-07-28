@@ -93,7 +93,7 @@ jobs:
       # permissions and unpinned actions.
       - run: pipx run zizmor --format sarif . > zizmor.sarif
         continue-on-error: true
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: zizmor.sarif
           category: zizmor
