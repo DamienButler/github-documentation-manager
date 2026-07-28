@@ -57,8 +57,21 @@ outdated Rust, npm and Actions dependencies.
 
 ### Known accepted findings
 
-`cargo audit` reports several **unmaintained** GTK/GLib crates. These arrive via
-Tauri's Linux backend, are not compiled into the macOS or Windows builds, and
-cannot be resolved independently of upstream Tauri. They are recorded in
-`deny.toml` with the reasoning, and will clear when Tauri migrates. No crate in
-the dependency tree currently has a known exploitable vulnerability.
+**`glib` unsoundness — RUSTSEC-2024-0429 (moderate).** `glib` 0.18.x contains
+unsound `Iterator`/`DoubleEndedIterator` implementations for `VariantStrIter`.
+It reaches us only through Tauri's GTK-based **Linux** backend:
+
+- It is **absent from the macOS and Windows dependency trees** entirely
+  (`cargo tree -i glib --target aarch64-apple-darwin` returns nothing), so the
+  macOS and Windows builds do not contain the affected code.
+- It **cannot be updated independently**: Tauri pins `gtk` 0.18, which pins
+  `glib` 0.18. The fix landed in `glib` 0.20 and will reach us when Tauri
+  migrates the gtk-rs stack.
+- The issue is *unsoundness* rather than a directly exploitable vulnerability;
+  triggering it requires specific misuse of the iterator by calling code.
+
+This affects only the Linux AppImage. It is recorded in `deny.toml` with the
+same reasoning. Reviewed 2026-07-28.
+
+`cargo audit` additionally reports a number of **unmaintained** GTK/GLib crates
+from the same Linux backend, for the same reasons.
