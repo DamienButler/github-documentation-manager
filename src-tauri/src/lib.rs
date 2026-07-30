@@ -109,6 +109,13 @@ fn only_http(url: &str) -> Result<url::Url, String> {
     }
 }
 
+/// Find-in-page support, injected into every documentation page.
+///
+/// It runs entirely inside the viewer webview and reports nothing back, which
+/// avoids granting Tauri IPC to arbitrary remote origins just to display a
+/// match count.
+const FIND_IN_PAGE: &str = include_str!("find_in_page.js");
+
 /// Show (creating on first use) the native child webview and point it at `url`.
 ///
 /// A real WKWebView is used rather than an `<iframe>` so that sites which send
@@ -137,8 +144,11 @@ async fn viewer_show(
         view.set_size(size).map_err(|e| e.to_string())?;
         view.show().map_err(|e| e.to_string())?;
     } else {
-        let builder =
-            tauri::webview::WebviewBuilder::new(VIEWER, WebviewUrl::External(parsed)).auto_resize();
+        let builder = tauri::webview::WebviewBuilder::new(VIEWER, WebviewUrl::External(parsed))
+            .auto_resize()
+            // Re-runs on every navigation, so find-in-page follows the user as
+            // they browse from the page they saved.
+            .initialization_script(FIND_IN_PAGE);
         window
             .add_child(builder, position, size)
             .map_err(|e| e.to_string())?;
@@ -146,6 +156,40 @@ async fn viewer_show(
 
     *state.url.lock().unwrap() = Some(url);
     Ok(())
+}
+
+/// Open the find bar inside the viewer.
+///
+/// `Cmd-F` is handled by the injected script whenever focus is in the document;
+/// this covers the toolbar button, and the case where focus is in our own UI.
+#[tauri::command]
+fn viewer_find(window: Window) -> Result<(), String> {
+    match window.get_webview(VIEWER) {
+        Some(view) => view
+            .eval("window.__docuFindOpen && window.__docuFindOpen()")
+            .map_err(|e| e.to_string()),
+        None => Err("no document is open".into()),
+    }
+}
+
+/// The URL the viewer is showing *now*, which may differ from the saved
+/// document if the user has followed links.
+#[tauri::command]
+fn viewer_current_url(window: Window, state: State<'_, ViewerState>) -> Result<String, String> {
+    let view = window
+        .get_webview(VIEWER)
+        .ok_or_else(|| "no document is open".to_string())?;
+
+    match view.url() {
+        Ok(url) => Ok(url.to_string()),
+        // Fall back to the last URL we navigated to.
+        Err(_) => state
+            .url
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or_else(|| "no document is open".to_string()),
+    }
 }
 
 #[tauri::command]
@@ -196,6 +240,8 @@ pub fn run() {
             viewer_set_bounds,
             viewer_hide,
             viewer_reload,
+            viewer_find,
+            viewer_current_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the application");

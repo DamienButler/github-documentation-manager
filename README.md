@@ -15,6 +15,9 @@ Built with [Tauri](https://tauri.app) — a Rust shell around the operating syst
   - [Adding a link](#adding-a-link)
   - [Searching](#searching)
   - [Reading a document](#reading-a-document)
+  - [Finding text in a page](#finding-text-in-a-page)
+  - [Adding the page you're reading](#adding-the-page-youre-reading)
+  - [Duplicates](#duplicates)
   - [Copying a URL](#copying-a-url)
   - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Where your data lives](#where-your-data-lives)
@@ -134,9 +137,38 @@ Click any entry in the left pane. The right pane shows:
 
 The document is displayed in a real native webview positioned over the pane — not an `<iframe>`. That distinction matters: sites which send `X-Frame-Options` or a `frame-ancestors` policy (github.com and docs.github.com among them) refuse to load in an iframe, but render perfectly here. Links inside the document work; you can browse from the page you saved.
 
-Above the document: **⟳** reloads it, **↗** opens the page in your normal browser.
+Above the document: **⟳** reloads it, **Find** searches within it, **＋ Add page** saves wherever you've browsed to, and **↗** opens the page in your normal browser.
 
 **Editing notes.** Click **Edit notes**, type, then click away — it saves on blur. Good for accumulating the specific details you keep re-looking-up.
+
+### Finding text in a page
+
+Press `⌘F` while reading, or click **Find** in the viewer toolbar. A find bar appears in the top-right of the document:
+
+- Type to highlight every match; the current one is highlighted more strongly and scrolled into view.
+- `↵` for the next match, `⇧↵` for the previous, or use the **↑ ↓** buttons.
+- The counter shows `3/17`, or `No results` when nothing matches.
+- `Esc` closes the bar and clears the highlighting.
+
+Matching ignores case, skips hidden elements, and works across text split by inline markup. Because the find bar lives inside the document itself, it keeps working as you follow links.
+
+### Adding the page you're reading
+
+Documentation sends you wandering — you open the page you saved, follow two links, and end up somewhere more useful than where you started. **＋ Add page** captures that.
+
+It reads the URL the viewer is *currently* showing, switches to the **Add link** tab with the URL filled in, and suggests a title derived from the address (`…/caching-dependencies` → "Caching dependencies"). Anything still needed is outlined in amber, and focus goes to the first of them. Edit the title, pick a category, save.
+
+`⌘D` does the same thing without reaching for the mouse.
+
+> The page's real `<title>` would make a better suggestion, but reading it would mean granting the app's internal messaging to every site you visit. A title you edit is a fair trade for not widening that boundary — see [Security](#security).
+
+### Duplicates
+
+The same URL can't be saved twice, in any set.
+
+As you type or paste into the URL field, a warning appears if it's already saved — naming the existing entry, where it lives, and offering **Go to it**. Saving is blocked with the same message if you ignore the warning, and **＋ Add page** checks before it does anything.
+
+Matching is deliberately forgiving about things that don't change the destination — a trailing slash, `www.`, capitalised host, `:443`, or tracking parameters like `utm_source` all count as the same page. Things that *do* matter stay distinct: different paths, different anchors (`#install` vs `#usage`), and meaningful query strings like `?version=2`.
 
 ### Copying a URL
 
@@ -159,10 +191,16 @@ The app uses a hidden title bar so the toolbar sits flush with the top of the wi
 
 | Shortcut | Action |
 | --- | --- |
-| `⌘F` or `/` | Focus the search box |
+| `⌘F` | Find in the page you're reading (falls back to the library search when nothing is open) |
+| `⌘K` or `/` | Focus the library search box |
+| `⌘D` | Add the page currently shown |
 | `⌘N` | New link (switches to the Add tab) |
 | `⌘S` | Export library… |
 | `⌘O` | Import library… |
+
+`⌘F` follows the convention every browser and editor uses — search what you're
+reading. The library search moved to `⌘K`, which is what most search-palette
+UIs use.
 
 ---
 
@@ -297,20 +335,33 @@ npx tauri icon src-tauri/icons/icon.png
 ## Project layout
 
 ```
-├── src/                    Frontend — no framework, no build step
-│   ├── index.html          Two-pane layout and tab structure
-│   ├── styles.css          GitHub-dark theme
-│   └── app.js              Tree, search, add form, detail pane, viewer control
-├── src-tauri/              Rust backend
-│   ├── src/lib.rs          Commands: storage, import/export, webview control
-│   ├── src/main.rs         Entry point
-│   ├── Cargo.toml          Rust dependencies
-│   ├── tauri.conf.json     Window, bundle and build configuration
-│   └── capabilities/       Permission grants for the frontend
-└── scripts/make-icon.js    Dependency-free PNG icon generator
+├── src/                        Frontend — no framework, no build step
+│   ├── index.html              Two-pane layout and tab structure
+│   ├── styles.css              GitHub-dark theme
+│   └── app.js                  Tree, search, add form, detail pane, viewer control
+├── src-tauri/                  Rust backend
+│   ├── src/lib.rs              Commands: storage, import/export, webview control
+│   ├── src/find_in_page.js     Find bar injected into viewed documentation
+│   ├── src/main.rs             Entry point
+│   ├── Cargo.toml              Rust dependencies
+│   ├── tauri.conf.json         Window, bundle and build configuration
+│   └── capabilities/           Permission grants for the frontend
+└── scripts/
+    ├── make-icon.js            Dependency-free PNG icon generator
+    ├── test-normalise.js       Duplicate-URL rules, and a library duplicate scan
+    └── update.sh               Pull, rebuild and reinstall
 ```
 
 The frontend is plain HTML, CSS and JavaScript — no framework, no bundler, no transpiler. `src/index.html` can be opened directly in a browser, where it falls back to `localStorage` and an `<iframe>` preview.
+
+**Checking for duplicates in your own library:**
+
+```sh
+node scripts/test-normalise.js "$HOME/Library/Application Support/com.damienbutler.documanage/library.json"
+```
+
+Runs the matching rules as a test suite, then reports any URLs already saved
+more than once.
 
 ---
 

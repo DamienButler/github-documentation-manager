@@ -518,6 +518,9 @@
           <div class="viewer-bar">
             <button class="ghost small" id="vw-reload" title="Reload">⟳</button>
             <span class="vw-status">${esc(doc.url)}</span>
+            ${isDesktop ? `
+            <button class="ghost small" id="vw-find" title="Find in page (⌘F)">Find</button>
+            <button class="ghost small" id="vw-add" title="Add the page currently shown">＋ Add page</button>` : ''}
             <button class="ghost small" id="vw-external" title="Open in browser">↗</button>
           </div>
           <div class="viewer-slot" id="viewer-slot">
@@ -531,6 +534,10 @@
       if (isDesktop) invoke('viewer_reload').catch(console.error);
       else renderDetail();
     });
+    if (isDesktop) {
+      $('#vw-find').addEventListener('click', openFind);
+      $('#vw-add').addEventListener('click', addCurrentPage);
+    }
     $('#vw-external').addEventListener('click', () => openUrl(doc.url));
     $('#detail-copy').addEventListener('click', () => copy(doc.url));
     $('#open-btn').addEventListener('click', () => openUrl(doc.url));
@@ -586,6 +593,7 @@
   catSelect.addEventListener('change', () => {
     const isNew = catSelect.value === NEW_VALUE;
     newCatWrap.hidden = !isNew;
+    catSelect.classList.remove('needs-value');
     if (isNew) newCat.focus();
     fillSubSelect();
     newSubWrap.hidden = subSelect.value !== NEW_VALUE;
@@ -593,7 +601,38 @@
 
   subSelect.addEventListener('change', () => {
     newSubWrap.hidden = subSelect.value !== NEW_VALUE;
+    subSelect.classList.remove('needs-value');
     if (!newSubWrap.hidden) newSub.focus();
+  });
+
+  /**
+   * Live duplicate feedback under the URL field, so the clash is visible before
+   * the user bothers filling in the rest of the form.
+   */
+  function checkUrlField() {
+    const warn = $('#url-warning');
+    const value = $('#doc-url').value.trim();
+    if (!value) { warn.hidden = true; return null; }
+
+    const dupe = findDuplicate(value);
+    if (!dupe) { warn.hidden = true; return null; }
+
+    warn.hidden = false;
+    warn.innerHTML = '';
+    warn.append(`Already saved as “${dupe.doc.title}” in ${dupe.product} › ${dupe.doc.category} › ${dupe.doc.subcategory}. `);
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'link-btn';
+    link.textContent = 'Go to it';
+    link.addEventListener('click', () => revealDoc(dupe.product, dupe.doc.id));
+    warn.appendChild(link);
+    return dupe;
+  }
+
+  let urlCheckTimer;
+  $('#doc-url').addEventListener('input', () => {
+    clearTimeout(urlCheckTimer);
+    urlCheckTimer = setTimeout(checkUrlField, 200);
   });
 
   addForm.addEventListener('submit', (e) => {
@@ -603,9 +642,20 @@
     const category = catSelect.value === NEW_VALUE ? newCat.value.trim() : catSelect.value;
     const subcategory = subSelect.value === NEW_VALUE ? newSub.value.trim() : subSelect.value;
 
-    if (!category) return showMsg('Please enter a category name.', true);
-    if (!subcategory) return showMsg('Please enter a sub category name.', true);
+    if (!category) { flagRequired([catSelect]); return showMsg('Please enter a category name.', true); }
+    if (!subcategory) { flagRequired([subSelect]); return showMsg('Please enter a sub category name.', true); }
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+    // Last line of defence — the field-level check may have been ignored, and
+    // the same URL could have arrived via import in the meantime.
+    const dupe = findDuplicate(url);
+    if (dupe) {
+      checkUrlField();
+      showMsg(`Not saved — “${dupe.doc.title}” already points here.`, true);
+      return;
+    }
+
+    flagRequired([]);
 
     if (!lib().categories[category]) lib().categories[category] = [];
     if (!lib().categories[category].includes(subcategory)) lib().categories[category].push(subcategory);
@@ -631,6 +681,8 @@
     newSubWrap.hidden = true;
     newCat.value = '';
     newSub.value = '';
+    flagRequired([]);
+    $('#url-warning').hidden = true;
   }
 
   function showMsg(text, isError) {
@@ -684,6 +736,143 @@
   function openUrl(url) {
     if (isDesktop) opener.openUrl(url).catch(console.error);
     else window.open(url, '_blank', 'noopener');
+  }
+
+  // ---------- Find in page ----------
+  // The find bar itself lives inside the viewer webview (see find_in_page.js);
+  // this just opens it. Cmd-F is handled there too, for when focus is in the
+  // document rather than in our own UI.
+  function openFind() {
+    if (!isDesktop) return;
+    invoke('viewer_find').catch((e) => toast(String(e)));
+  }
+
+  // ---------- Duplicate detection ----------
+
+  /**
+   * Normalise a URL for comparison so trivial differences don't read as
+   * distinct pages.
+   *
+   * Scheme and host are lower-cased, default ports and a trailing slash are
+   * dropped, and tracking parameters are stripped. The path keeps its case
+   * (servers may treat it as significant) and the fragment is kept, because
+   * `#section` anchors genuinely identify different parts of a document.
+   */
+  const TRACKING = /^(utm_|fbclid|gclid|mc_[ce]id|ref|referrer|source|WT\.)/i;
+
+  function normaliseUrl(raw) {
+    let text = String(raw || '').trim();
+    if (!text) return '';
+    if (!/^https?:\/\//i.test(text)) text = 'https://' + text;
+
+    try {
+      const u = new URL(text);
+      u.protocol = u.protocol.toLowerCase();
+      u.hostname = u.hostname.toLowerCase().replace(/^www\./, '');
+      if ((u.protocol === 'https:' && u.port === '443') ||
+          (u.protocol === 'http:' && u.port === '80')) u.port = '';
+      if (u.pathname.length > 1 && u.pathname.endsWith('/')) u.pathname = u.pathname.slice(0, -1);
+      [...u.searchParams.keys()].forEach((k) => { if (TRACKING.test(k)) u.searchParams.delete(k); });
+      return u.toString();
+    } catch {
+      return text.toLowerCase();
+    }
+  }
+
+  /**
+   * Find an existing document with the same URL, in any set.
+   * @returns {{doc: Doc, product: string} | null}
+   */
+  function findDuplicate(url, ignoreId) {
+    const target = normaliseUrl(url);
+    if (!target) return null;
+    for (const product of state.productOrder) {
+      const found = (state.products[product].docs || [])
+        .find((d) => d.id !== ignoreId && normaliseUrl(d.url) === target);
+      if (found) return { doc: found, product };
+    }
+    return null;
+  }
+
+  /** Jump to a document, switching set if it lives elsewhere. */
+  function revealDoc(product, id) {
+    if (state.activeProduct !== product) {
+      state.activeProduct = product;
+      search.value = '';
+      save();
+    }
+    selectedId = id;
+    document.querySelector('.tab[data-tab="browse"]').click();
+    renderAll();
+  }
+
+  // ---------- Add the page currently being viewed ----------
+
+  /**
+   * Derive a starting title from a URL, e.g.
+   * `…/actions/using-workflows/caching-dependencies` → "Caching dependencies".
+   *
+   * The page's real <title> would be better, but reading it would mean granting
+   * Tauri IPC to arbitrary remote origins, which isn't a fair trade for an
+   * autofill. The field is pre-selected so it's quick to replace.
+   */
+  function titleFromUrl(url) {
+    try {
+      const u = new URL(url);
+      const seg = u.pathname.split('/').filter(Boolean).pop() || u.hostname;
+      const words = decodeURIComponent(seg)
+        .replace(/\.(html?|php|aspx?)$/i, '')
+        .replace(/[-_]+/g, ' ')
+        .trim();
+      if (!words) return u.hostname;
+      return words.charAt(0).toUpperCase() + words.slice(1);
+    } catch {
+      return '';
+    }
+  }
+
+  /** Prefill the Add link form from whatever the viewer is showing. */
+  async function addCurrentPage() {
+    if (!isDesktop) return;
+
+    let url;
+    try {
+      url = await invoke('viewer_current_url');
+    } catch (e) {
+      toast(String(e));
+      return;
+    }
+
+    const dupe = findDuplicate(url);
+    if (dupe) {
+      const go = await dialog.ask(
+        `“${dupe.doc.title}” in ${dupe.product} › ${dupe.doc.category} › ${dupe.doc.subcategory} already points here.`,
+        { title: 'Already saved', okLabel: 'Go to it', cancelLabel: 'Close' }
+      );
+      if (go) revealDoc(dupe.product, dupe.doc.id);
+      return;
+    }
+
+    document.querySelector('.tab[data-tab="add"]').click();
+    $('#doc-url').value = url;
+    $('#doc-title').value = titleFromUrl(url);
+    checkUrlField();
+
+    // Nudge the user towards whatever still needs filling in.
+    const needed = !catSelect.value ? catSelect
+      : !subSelect.value ? subSelect
+      : $('#doc-title');
+    flagRequired([catSelect, subSelect].filter((el) => !el.value));
+    needed.focus();
+    if (needed === $('#doc-title')) needed.select();
+
+    showMsg('URL captured — check the title and choose where it belongs.');
+  }
+
+  /** Briefly outline fields that still need a value. */
+  function flagRequired(elements) {
+    document.querySelectorAll('.needs-value').forEach((el) => el.classList.remove('needs-value'));
+    elements.forEach((el) => el.classList.add('needs-value'));
   }
 
   // ---------- Import / export ----------
@@ -831,8 +1020,18 @@
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
     const mod = e.metaKey || e.ctrlKey;
 
-    if (mod && e.key === 'f') { e.preventDefault(); focusSearch(); return; }
+    // Cmd-F matches every other app: find within the page being read. With
+    // nothing open there's nothing to search, so fall back to the library.
+    // (When focus is inside the document, the injected script handles Cmd-F
+    // itself — this covers the case where focus is in our own UI.)
+    if (mod && e.key === 'f') {
+      e.preventDefault();
+      if (isDesktop && selectedId) openFind(); else focusSearch();
+      return;
+    }
+    if (mod && e.key === 'k') { e.preventDefault(); focusSearch(); return; }
     if (mod && e.key === 'n') { e.preventDefault(); focusAddTab(); return; }
+    if (mod && e.key === 'd') { e.preventDefault(); addCurrentPage(); return; }
     if (mod && e.key === 's') { e.preventDefault(); exportLibrary(); return; }
     if (mod && e.key === 'o') { e.preventDefault(); isDesktop ? importFromDialog() : $('#import-file').click(); return; }
     if (e.key === '/' && !typing) { e.preventDefault(); focusSearch(); }

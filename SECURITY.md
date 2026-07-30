@@ -32,6 +32,14 @@ loads a URL you saved".
 - **Untrusted content is isolated.** Documentation pages render in a separate
   child webview with no access to the application's own JavaScript context or
   to Tauri commands.
+- **Find-in-page runs inside the page, not across the boundary.** Searching the
+  document you are reading is implemented by a self-contained script injected
+  into the viewer. It reports nothing back to the app. The alternative —
+  querying the page and returning match counts — would mean exposing Tauri's
+  internal messaging to every site you visit, which is a far larger boundary to
+  defend for a smaller benefit. The same reasoning is why **＋ Add page**
+  derives its suggested title from the URL rather than reading the page's
+  `<title>`.
 - **HTML escaping.** Every value from the library — titles, URLs, tags, notes —
   is escaped before it reaches the DOM, so importing a malicious library cannot
   inject script into the app's own UI.

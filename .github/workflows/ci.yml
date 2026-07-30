@@ -65,4 +65,7 @@ jobs:
       - run: npm ci
 
       - name: Check JavaScript parses
-        run: node --check src/app.js && node --check scripts/make-icon.js
+        run: node --check src/app.js && node --check scripts/make-icon.js && node --check src-tauri/src/find_in_page.js
+
+      - name: Duplicate-URL matching rules
+        run: node scripts/test-normalise.js
