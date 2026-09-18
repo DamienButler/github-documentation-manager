@@ -272,7 +272,7 @@
   }
 
   async function createProduct() {
-    const name = await promptText('New documentation set', 'e.g. Microsoft, AWS, Python');
+    const name = await promptText('New Hive section', 'e.g. Microsoft, AWS, Python');
     if (!name) return;
 
     const trimmed = name.trim();
@@ -583,7 +583,7 @@
             <span class="vw-status">${esc(doc.url)}</span>
             ${isDesktop ? `
             <button class="ghost small" id="vw-find" title="Find in page (⌘F)">Find</button>
-            <button class="ghost small" id="vw-add" title="Add the page currently shown">＋ Add page</button>` : ''}
+            <button class="ghost small" id="vw-add" title="Add the page currently shown to your Hive">＋ Add to Hive</button>` : ''}
             <button class="ghost small" id="vw-external" title="Open in browser">↗</button>
           </div>
           <div class="viewer-slot" id="viewer-slot">
@@ -695,7 +695,10 @@
   let urlCheckTimer;
   $('#doc-url').addEventListener('input', () => {
     clearTimeout(urlCheckTimer);
-    urlCheckTimer = setTimeout(checkUrlField, 200);
+    urlCheckTimer = setTimeout(() => {
+      checkUrlField();
+      updateSectionSuggestion($('#doc-url').value);
+    }, 200);
   });
 
   addForm.addEventListener('submit', (e) => {
@@ -733,7 +736,7 @@
     renderTree();
     selectDoc(doc.id);
     showMsg('Saved to ' + category + ' › ' + subcategory);
-    toast('Link added');
+    toast('Added to Hive');
   });
 
   $('#reset-form').addEventListener('click', () => { resetForm(); fillCategorySelect(); });
@@ -746,6 +749,8 @@
     newSub.value = '';
     flagRequired([]);
     $('#url-warning').hidden = true;
+    $('#section-suggestion').hidden = true;
+    $('#section-suggestion').innerHTML = '';
   }
 
   function showMsg(text, isError) {
@@ -844,6 +849,84 @@
     }
   }
 
+
+  /** Return a normalised hostname for lightweight local URL classification. */
+  function hostnameOf(raw) {
+    let text = String(raw || '').trim();
+    if (!text) return '';
+    if (!/^https?:\/\//i.test(text)) text = 'https://' + text;
+    try {
+      return new URL(text).hostname.toLowerCase().replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Suggest the Hive section most associated with this hostname.
+   *
+   * Existing resources are the strongest signal. As a fallback, a section name
+   * that appears in the hostname (for example GitHub -> docs.github.com) gets a
+   * small score. Nothing is moved automatically: the user explicitly accepts
+   * the suggestion.
+   */
+  function suggestHiveSection(url) {
+    const host = hostnameOf(url);
+    if (!host) return null;
+
+    let best = null;
+    let bestScore = 0;
+
+    state.productOrder.forEach((name) => {
+      const product = state.products[name] || emptyProduct();
+      const sameHostCount = (product.docs || [])
+        .filter((d) => hostnameOf(d.url) === host).length;
+
+      const nameKey = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const hostKey = host.replace(/[^a-z0-9]/g, '');
+      const nameMatch = nameKey.length >= 3 && hostKey.includes(nameKey) ? 1 : 0;
+      const score = (sameHostCount * 10) + nameMatch;
+
+      if (score > bestScore) {
+        best = name;
+        bestScore = score;
+      }
+    });
+
+    return bestScore > 0 ? best : null;
+  }
+
+  /** Show a non-destructive suggestion for which Hive section should own a URL. */
+  function updateSectionSuggestion(url) {
+    const el = $('#section-suggestion');
+    if (!el) return;
+
+    const suggestion = suggestHiveSection(url);
+    if (!suggestion || suggestion === state.activeProduct) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+
+    el.hidden = false;
+    el.innerHTML = '';
+    el.append(`Likely Hive section: ${suggestion}. `);
+
+    const use = document.createElement('button');
+    use.type = 'button';
+    use.className = 'link-btn';
+    use.textContent = `Use ${suggestion}`;
+    use.addEventListener('click', () => {
+      state.activeProduct = suggestion;
+      save();
+      renderProductTabs();
+      fillCategorySelect();
+      updateSectionSuggestion($('#doc-url').value);
+      showMsg(`Using ${suggestion} — choose a category and sub category.`);
+    });
+    el.appendChild(use);
+  }
+
   /**
    * Find an existing document with the same URL, in any set.
    * @returns {{doc: Doc, product: string} | null}
@@ -922,6 +1005,7 @@
     $('#doc-url').value = url;
     $('#doc-title').value = titleFromUrl(url);
     checkUrlField();
+    updateSectionSuggestion(url);
 
     // Nudge the user towards whatever still needs filling in.
     const needed = !catSelect.value ? catSelect
@@ -931,7 +1015,7 @@
     needed.focus();
     if (needed === $('#doc-title')) needed.select();
 
-    showMsg('URL captured — check the title and choose where it belongs.');
+    showMsg('Resource captured — check the title and choose where it belongs.');
   }
 
   /** Briefly outline fields that still need a value. */
