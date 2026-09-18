@@ -25,24 +25,24 @@
   <main class="layout">
     <!-- LEFT PANE -->
     <section class="pane left-pane">
-      <!-- Product tabs: one per documentation set (GitHub, Microsoft, …).
+      <!-- Hive sections: one per product or resource collection (GitHub, Microsoft, …).
            Populated by renderProductTabs(). -->
       <div class="product-tab-bar">
         <button id="scroll-tabs-left" class="tab-scroll" type="button" title="Scroll tabs left" aria-label="Scroll tabs left" disabled>‹</button>
-        <nav class="product-tabs" id="product-tabs" role="tablist" aria-label="Documentation sets"></nav>
+        <nav class="product-tabs" id="product-tabs" role="tablist" aria-label="Hive sections"></nav>
         <button id="scroll-tabs-right" class="tab-scroll" type="button" title="Scroll tabs right" aria-label="Scroll tabs right" disabled>›</button>
-        <button id="new-product" class="new-product" type="button" title="Add a documentation set" aria-label="Add a documentation set">+</button>
+        <button id="new-product" class="new-product" type="button" title="Add a section to your Hive" aria-label="Add a section to your Hive">+</button>
       </div>
 
       <nav class="tabs" role="tablist">
-        <button class="tab active" data-tab="browse" role="tab">Documentation</button>
-        <button class="tab" data-tab="add" role="tab">Add link</button>
+        <button class="tab active" data-tab="browse" role="tab">Hive</button>
+        <button class="tab" data-tab="add" role="tab">Add to Hive</button>
       </nav>
 
       <!-- Tab: browse -->
       <div class="tab-panel active" data-panel="browse">
         <div class="search-row">
-          <input type="search" id="search" placeholder="Search titles, URLs, tags, categories…" autocomplete="off" />
+          <input type="search" id="search" placeholder="Search resources, URLs, tags, categories…" autocomplete="off" />
           <button id="collapse-all" class="ghost small" title="Collapse / expand all">⇕</button>
         </div>
         <div id="tree" class="tree"></div>
@@ -61,6 +61,7 @@
             <input type="url" id="doc-url" placeholder="https://docs.github.com/…" required />
           </label>
           <p class="url-warning" id="url-warning" hidden></p>
+          <p class="section-suggestion" id="section-suggestion" hidden></p>
 
           <label>
             Category
@@ -89,7 +90,7 @@
           </label>
 
           <div class="form-actions">
-            <button type="submit" class="primary">Save link</button>
+            <button type="submit" class="primary">Save resource</button>
             <button type="button" id="reset-form" class="ghost">Clear</button>
           </div>
           <p class="form-msg" id="form-msg"></p>
@@ -97,13 +98,13 @@
       </div>
     </section>
 
-    <div id="pane-resizer" class="pane-resizer" role="separator" aria-label="Resize documentation sidebar" aria-orientation="vertical" aria-valuemin="240" aria-valuenow="380" tabindex="0"></div>
+    <div id="pane-resizer" class="pane-resizer" role="separator" aria-label="Resize Hive sidebar" aria-orientation="vertical" aria-valuemin="240" aria-valuenow="380" tabindex="0"></div>
 
     <!-- RIGHT PANE -->
     <section class="pane right-pane" id="detail">
       <div class="empty-state">
-        <h2>No document selected</h2>
-        <p>Pick a document in the left pane to see its details, URL and notes.</p>
+        <h2>No resource selected</h2>
+        <p>Pick a resource in the left pane to see its details, URL and notes.</p>
       </div>
     </section>
   </main>
