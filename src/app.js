@@ -149,6 +149,11 @@
   const search = $('#search');
   const addForm = $('#add-form');
   const productTabs = $('#product-tabs');
+  const scrollTabsLeft = $('#scroll-tabs-left');
+  const scrollTabsRight = $('#scroll-tabs-right');
+  const newProduct = $('#new-product');
+  const layout = $('.layout');
+  const paneResizer = $('#pane-resizer');
   const catSelect = $('#category-select');
   const subSelect = $('#subcategory-select');
   const newCatWrap = $('#new-category-wrap');
@@ -191,13 +196,71 @@
       productTabs.appendChild(tab);
     });
 
-    const add = document.createElement('button');
-    add.className = 'product-tab new-product';
-    add.title = 'Add a documentation set';
-    add.textContent = '＋ New tab';
-    add.addEventListener('click', createProduct);
-    productTabs.appendChild(add);
+    productTabs.querySelector('.product-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    requestAnimationFrame(updateTabScrollControls);
   }
+
+  newProduct.addEventListener('click', createProduct);
+
+  function updateTabScrollControls() {
+    const maxScroll = Math.max(0, productTabs.scrollWidth - productTabs.clientWidth);
+    scrollTabsLeft.disabled = productTabs.scrollLeft <= 1;
+    scrollTabsRight.disabled = productTabs.scrollLeft >= maxScroll - 1;
+  }
+
+  function scrollProductTabs(direction) {
+    productTabs.scrollBy({ left: direction * Math.max(120, productTabs.clientWidth * .75), behavior: 'smooth' });
+  }
+
+  scrollTabsLeft.addEventListener('click', () => scrollProductTabs(-1));
+  scrollTabsRight.addEventListener('click', () => scrollProductTabs(1));
+  productTabs.addEventListener('scroll', updateTabScrollControls);
+  new ResizeObserver(updateTabScrollControls).observe(productTabs);
+
+  productTabs.addEventListener('wheel', (event) => {
+    if (productTabs.scrollWidth <= productTabs.clientWidth) return;
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    event.preventDefault();
+    productTabs.scrollLeft += event.deltaY;
+  }, { passive: false });
+
+  const MIN_PANE_WIDTH = 240;
+  const MIN_DETAIL_WIDTH = 240;
+
+  function setSidebarWidth(width, persist = false) {
+    const maxWidth = Math.max(MIN_PANE_WIDTH, layout.clientWidth - MIN_DETAIL_WIDTH - paneResizer.offsetWidth);
+    const nextWidth = Math.round(Math.min(Math.max(width, MIN_PANE_WIDTH), maxWidth));
+    layout.style.setProperty('--sidebar-width', `${nextWidth}px`);
+    paneResizer.setAttribute('aria-valuemax', String(maxWidth));
+    paneResizer.setAttribute('aria-valuenow', String(nextWidth));
+    if (persist) localStorage.setItem('sidebarWidth', String(nextWidth));
+    syncViewerBounds();
+  }
+
+  paneResizer.addEventListener('pointerdown', (event) => {
+    paneResizer.setPointerCapture(event.pointerId);
+    paneResizer.classList.add('dragging');
+  });
+
+  paneResizer.addEventListener('pointermove', (event) => {
+    if (!paneResizer.hasPointerCapture(event.pointerId)) return;
+    setSidebarWidth(event.clientX);
+  });
+
+  paneResizer.addEventListener('pointerup', (event) => {
+    if (!paneResizer.hasPointerCapture(event.pointerId)) return;
+    paneResizer.releasePointerCapture(event.pointerId);
+    paneResizer.classList.remove('dragging');
+    setSidebarWidth(event.clientX, true);
+  });
+
+  paneResizer.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const step = event.shiftKey ? 40 : 10;
+    const currentWidth = parseInt(getComputedStyle(layout).getPropertyValue('--sidebar-width'), 10);
+    setSidebarWidth(currentWidth + (event.key === 'ArrowRight' ? step : -step), true);
+  });
 
   function switchProduct(name) {
     if (name === state.activeProduct) return;
@@ -729,6 +792,8 @@
 
   let resizeTimer;
   window.addEventListener('resize', () => {
+    const currentWidth = parseInt(getComputedStyle(layout).getPropertyValue('--sidebar-width'), 10);
+    setSidebarWidth(currentWidth);
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(syncViewerBounds, 60);
   });
@@ -1057,6 +1122,7 @@
   }
 
   // ---------- Init ----------
+  setSidebarWidth(Number(localStorage.getItem('sidebarWidth')) || 380);
   renderAll();
 
   if (isDesktop) {
