@@ -314,7 +314,19 @@ details[open] > summary .chevron { transform: rotate(90deg); }
   cursor: pointer;
 }
 
-/* Fields still needing a value after "Add page" captured a URL */
+/* Suggested Hive section based on the captured URL and the user's existing library. */
+.section-suggestion {
+  margin: -6px 0 0;
+  padding: 7px 10px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(47, 129, 247, .4);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Fields still needing a value after "Add to Hive" captured a URL */
 .needs-value {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 3px rgba(248, 81, 73, .15);
